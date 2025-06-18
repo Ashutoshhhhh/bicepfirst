@@ -1,0 +1,700 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "languageVersion": "2.0",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.36.1.42791",
+      "templateHash": "16347959477123838551"
+    }
+  },
+  "parameters": {
+    "vnetName": {
+      "type": "string"
+    },
+    "vnetAddressSpace": {
+      "type": "string"
+    },
+    "subnetName": {
+      "type": "array"
+    },
+    "subnetAddressPrefix": {
+      "type": "array"
+    },
+    "location": {
+      "type": "string"
+    },
+    "asgName": {
+      "type": "array"
+    },
+    "nsgName": {
+      "type": "array"
+    },
+    "tier": {
+      "type": "array"
+    },
+    "keyVaultName": {
+      "type": "string"
+    },
+    "objectId": {
+      "type": "string"
+    },
+    "keyVaultSecret": {
+      "type": "securestring"
+    },
+    "nsgForVmName": {
+      "type": "array"
+    },
+    "vmName": {
+      "type": "array"
+    },
+    "vmSize": {
+      "type": "string"
+    },
+    "admin": {
+      "type": "string"
+    },
+    "zones": {
+      "type": "string"
+    },
+    "publicIp": {
+      "type": "array"
+    }
+  },
+  "resources": {
+    "nsgsubnetassociation": {
+      "copy": {
+        "name": "nsgsubnetassociation",
+        "count": "[length(range(0, length(parameters('nsgName'))))]"
+      },
+      "type": "Microsoft.Network/virtualNetworks/subnets",
+      "apiVersion": "2024-07-01",
+      "name": "[format('{0}/{1}', parameters('vnetName'), parameters('subnetName')[range(0, length(parameters('nsgName')))[copyIndex()]])]",
+      "properties": {
+        "networkSecurityGroup": {
+          "id": "[reference(format('nsgforsubnet[{0}]', range(0, length(parameters('nsgName')))[copyIndex()])).outputs.nsgId.value[0]]"
+        }
+      },
+      "dependsOn": [
+        "[format('nsgforsubnet[{0}]', range(0, length(parameters('nsgName')))[copyIndex()])]"
+      ]
+    },
+    "keyVault": {
+      "existing": true,
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2024-11-01",
+      "name": "[parameters('keyVaultName')]"
+    },
+    "vnet": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('vnet-{0}', parameters('vnetName'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "vnetName": {
+            "value": "[parameters('vnetName')]"
+          },
+          "vnetAddressSpace": {
+            "value": "[parameters('vnetAddressSpace')]"
+          },
+          "subnetName": {
+            "value": "[parameters('subnetName')]"
+          },
+          "subnetAddressPrefix": {
+            "value": "[parameters('subnetAddressPrefix')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.36.1.42791",
+              "templateHash": "6927380944600277251"
+            }
+          },
+          "parameters": {
+            "vnetName": {
+              "type": "string"
+            },
+            "vnetAddressSpace": {
+              "type": "string"
+            },
+            "subnetName": {
+              "type": "array"
+            },
+            "subnetAddressPrefix": {
+              "type": "array"
+            },
+            "location": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks",
+              "apiVersion": "2024-07-01",
+              "name": "[parameters('vnetName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "copy": [
+                  {
+                    "name": "subnets",
+                    "count": "[length(range(0, length(parameters('subnetName'))))]",
+                    "input": {
+                      "name": "[parameters('subnetName')[range(0, length(parameters('subnetName')))[copyIndex('subnets')]]]",
+                      "properties": {
+                        "addressPrefix": "[parameters('subnetAddressPrefix')[range(0, length(parameters('subnetName')))[copyIndex('subnets')]]]"
+                      }
+                    }
+                  }
+                ],
+                "addressSpace": {
+                  "addressPrefixes": [
+                    "[parameters('vnetAddressSpace')]"
+                  ]
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "vnetId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            },
+            "subnetIds": {
+              "type": "array",
+              "copy": {
+                "count": "[length(parameters('subnetName'))]",
+                "input": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName')[copyIndex()])]"
+              }
+            }
+          }
+        }
+      }
+    },
+    "asg": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('asg-{0}', parameters('vnetName'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "asgName": {
+            "value": "[parameters('asgName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.36.1.42791",
+              "templateHash": "17584451142040494908"
+            }
+          },
+          "parameters": {
+            "asgName": {
+              "type": "array"
+            },
+            "location": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "copy": {
+                "name": "asg",
+                "count": "[length(parameters('asgName'))]"
+              },
+              "type": "Microsoft.Network/applicationSecurityGroups",
+              "apiVersion": "2024-07-01",
+              "name": "[parameters('asgName')[copyIndex()]]",
+              "location": "[parameters('location')]"
+            }
+          ],
+          "outputs": {
+            "asgIds": {
+              "type": "array",
+              "copy": {
+                "count": "[length(parameters('asgName'))]",
+                "input": "[resourceId('Microsoft.Network/applicationSecurityGroups', parameters('asgName')[copyIndex()])]"
+              }
+            }
+          }
+        }
+      }
+    },
+    "nsgforsubnet": {
+      "copy": {
+        "name": "nsgforsubnet",
+        "count": "[length(range(0, length(parameters('nsgName'))))]"
+      },
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('nsg-{0}', parameters('nsgName')[range(0, length(parameters('nsgName')))[copyIndex()]])]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "nsgName": {
+            "value": "[parameters('nsgName')[range(0, length(parameters('nsgName')))[copyIndex()]]]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tier": {
+            "value": "[parameters('tier')[range(0, length(parameters('nsgName')))[copyIndex()]]]"
+          },
+          "asgIds": {
+            "value": {
+              "app": "[reference('asg').outputs.asgIds.value[0]]",
+              "web": "[reference('asg').outputs.asgIds.value[1]]",
+              "db": "[reference('asg').outputs.asgIds.value[2]]"
+            }
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.36.1.42791",
+              "templateHash": "9843994554037400694"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "nsgName": {
+              "type": "string"
+            },
+            "tier": {
+              "type": "string"
+            },
+            "asgIds": {
+              "type": "object"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2024-07-01",
+              "name": "[parameters('nsgName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "securityRules": "[concat(if(equals(parameters('tier'), 'app'), createArray(createObject('name', 'AllowInternetInbound', 'properties', createObject('priority', 600, 'direction', 'Inbound', 'access', 'Allow', 'protocol', '*', 'sourceAddressPrefix', 'Internet', 'sourcePortRange', '*', 'destinationApplicationSecurityGroups', createArray(createObject('id', parameters('asgIds').app)), 'destinationPortRange', '*'))), createArray()), if(equals(parameters('tier'), 'web'), createArray(createObject('name', 'AllowAppInbound', 'properties', createObject('priority', 600, 'direction', 'Inbound', 'access', 'Allow', 'protocol', 'Tcp', 'sourcePortRange', '*', 'sourceApplicationSecurityGroups', createArray(createObject('id', parameters('asgIds').app)), 'destinationApplicationSecurityGroups', createArray(createObject('id', parameters('asgIds').web)), 'destinationPortRange', '*'))), createArray()), if(equals(parameters('tier'), 'db'), createArray(createObject('name', 'AllowWebInbound', 'properties', createObject('priority', 600, 'direction', 'Inbound', 'access', 'Allow', 'protocol', 'Tcp', 'sourcePortRange', '*', 'sourceApplicationSecurityGroups', createArray(createObject('id', parameters('asgIds').web)), 'destinationApplicationSecurityGroups', createArray(createObject('id', parameters('asgIds').db)), 'destinationPortRange', '*'))), createArray()))]"
+              }
+            }
+          ],
+          "outputs": {
+            "nsgId": {
+              "type": "array",
+              "value": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+              ]
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "asg"
+      ]
+    },
+    "keyvault": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('keyvault-{0}', parameters('keyVaultName'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "keyVaultName": {
+            "value": "[parameters('keyVaultName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "objectId": {
+            "value": "[parameters('objectId')]"
+          },
+          "keyVaultSecret": {
+            "value": "[parameters('keyVaultSecret')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.36.1.42791",
+              "templateHash": "13101881029584774895"
+            }
+          },
+          "parameters": {
+            "keyVaultName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "objectId": {
+              "type": "string"
+            },
+            "keyVaultSecret": {
+              "type": "securestring"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.KeyVault/vaults",
+              "apiVersion": "2024-11-01",
+              "name": "[parameters('keyVaultName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "sku": {
+                  "family": "A",
+                  "name": "standard"
+                },
+                "tenantId": "[subscription().tenantId]",
+                "accessPolicies": [
+                  {
+                    "tenantId": "[subscription().tenantId]",
+                    "objectId": "[parameters('objectId')]",
+                    "permissions": {
+                      "secrets": [
+                        "get",
+                        "list",
+                        "set",
+                        "delete"
+                      ]
+                    }
+                  }
+                ],
+                "enabledForDeployment": true,
+                "enabledForTemplateDeployment": true
+              }
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2024-11-01",
+              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'vmAdminPassword')]",
+              "properties": {
+                "value": "[parameters('keyVaultSecret')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "keyVaultId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+            },
+            "secretId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.KeyVault/vaults/secrets', parameters('keyVaultName'), 'vmAdminPassword')]"
+            }
+          }
+        }
+      }
+    },
+    "nsgforvm": {
+      "copy": {
+        "name": "nsgforvm",
+        "count": "[length(range(0, length(parameters('nsgForVmName'))))]"
+      },
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('nsg-vm-{0}', parameters('nsgForVmName')[range(0, length(parameters('nsgForVmName')))[copyIndex()]])]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "nsgForVmName": {
+            "value": "[parameters('nsgForVmName')[range(0, length(parameters('nsgForVmName')))[copyIndex()]]]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tier": {
+            "value": "[parameters('tier')[range(0, length(parameters('nsgForVmName')))[copyIndex()]]]"
+          },
+          "asgIds": {
+            "value": {
+              "app": "[reference('asg').outputs.asgIds.value[0]]",
+              "web": "[reference('asg').outputs.asgIds.value[1]]",
+              "db": "[reference('asg').outputs.asgIds.value[2]]"
+            }
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.36.1.42791",
+              "templateHash": "13769048691498257462"
+            }
+          },
+          "parameters": {
+            "nsgForVmName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tier": {
+              "type": "string"
+            },
+            "asgIds": {
+              "type": "object"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2024-07-01",
+              "name": "[parameters('nsgForVmName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "securityRules": "[concat(if(equals(parameters('tier'), 'app'), createArray(createObject('name', 'AllowInternetInbound', 'properties', createObject('priority', 500, 'direction', 'Inbound', 'access', 'Allow', 'protocol', 'TCP', 'sourceAddressPrefix', 'Internet', 'sourcePortRange', '*', 'destinationApplicationSecurityGroups', createArray(createObject('id', parameters('asgIds').app)), 'destinationPortRanges', createArray(22, 80, 443))), createObject('name', 'DenyVNetInbound', 'properties', createObject('priority', 600, 'direction', 'Inbound', 'access', 'Deny', 'protocol', '*', 'sourceAddressPrefix', 'VirtualNetwork', 'destinationAddressPrefix', '*', 'sourcePortRange', '*', 'destinationPortRange', '*'))), createArray()), if(equals(parameters('tier'), 'web'), createArray(createObject('name', 'AllowAppInbound', 'properties', createObject('priority', 600, 'direction', 'Inbound', 'access', 'Allow', 'protocol', 'Tcp', 'sourcePortRange', '*', 'sourceApplicationSecurityGroups', createArray(createObject('id', parameters('asgIds').app)), 'destinationApplicationSecurityGroups', createArray(createObject('id', parameters('asgIds').web)), 'destinationPortRanges', createArray(22, 80, 443))), createObject('name', 'DenyVNetInbound', 'properties', createObject('priority', 100, 'direction', 'Inbound', 'access', 'Deny', 'protocol', '*', 'sourceAddressPrefix', 'VirtualNetwork', 'destinationAddressPrefix', '*', 'sourcePortRange', '*', 'destinationPortRange', '*'))), createArray()), if(equals(parameters('tier'), 'db'), createArray(createObject('name', 'AllowWebInbound', 'properties', createObject('priority', 600, 'direction', 'Inbound', 'access', 'Allow', 'protocol', 'Tcp', 'sourcePortRange', '*', 'sourceApplicationSecurityGroups', createArray(createObject('id', parameters('asgIds').web)), 'destinationApplicationSecurityGroups', createArray(createObject('id', parameters('asgIds').db)), 'destinationPortRanges', createArray(22, 80, 443))), createObject('name', 'DenyVNetInbound', 'properties', createObject('priority', 100, 'direction', 'Inbound', 'access', 'Deny', 'protocol', '*', 'sourceAddressPrefix', 'VirtualNetwork', 'destinationAddressPrefix', '*', 'sourcePortRange', '*', 'destinationPortRange', '*'))), createArray()))]"
+              }
+            }
+          ],
+          "outputs": {
+            "nsgIds": {
+              "type": "array",
+              "value": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgForVmName'))]"
+              ]
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "asg"
+      ]
+    },
+    "vms": {
+      "copy": {
+        "name": "vms",
+        "count": "[length(range(0, length(parameters('vmName'))))]"
+      },
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('vm-{0}', parameters('vmName')[range(0, length(parameters('vmName')))[copyIndex()]])]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "vmName": {
+            "value": "[parameters('vmName')[range(0, length(parameters('vmName')))[copyIndex()]]]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "vmSize": {
+            "value": "[parameters('vmSize')]"
+          },
+          "admin": {
+            "value": "[parameters('admin')]"
+          },
+          "zones": {
+            "value": "[parameters('zones')]"
+          },
+          "publicIp": {
+            "value": "[parameters('publicIp')[range(0, length(parameters('vmName')))[copyIndex()]]]"
+          },
+          "asgIds": {
+            "value": "[createArray(reference('asg').outputs.asgIds.value[0], reference('asg').outputs.asgIds.value[1], reference('asg').outputs.asgIds.value[2])[range(0, length(parameters('vmName')))[copyIndex()]]]"
+          },
+          "subnetId": {
+            "value": "[createArray(reference('vnet').outputs.subnetIds.value[0], reference('vnet').outputs.subnetIds.value[1], reference('vnet').outputs.subnetIds.value[2])[range(0, length(parameters('vmName')))[copyIndex()]]]"
+          },
+          "nsgId": {
+            "value": "[createArray(reference(format('nsgforvm[{0}]', 0)).outputs.nsgIds.value[0], reference(format('nsgforvm[{0}]', 1)).outputs.nsgIds.value[0], reference(format('nsgforvm[{0}]', 2)).outputs.nsgIds.value[0])[range(0, length(parameters('vmName')))[copyIndex()]]]"
+          },
+          "adminPassword": {
+            "value": "[listSecret(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), 'vmAdminPassword').value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.36.1.42791",
+              "templateHash": "1529915262534518914"
+            }
+          },
+          "parameters": {
+            "vmName": {
+              "type": "string"
+            },
+            "vmSize": {
+              "type": "string"
+            },
+            "admin": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "zones": {
+              "type": "string"
+            },
+            "publicIp": {
+              "type": "bool",
+              "defaultValue": false
+            },
+            "asgIds": {
+              "type": "string"
+            },
+            "subnetId": {
+              "type": "string"
+            },
+            "nsgId": {
+              "type": "string"
+            },
+            "adminPassword": {
+              "type": "securestring"
+            }
+          },
+          "resources": [
+            {
+              "condition": "[parameters('publicIp')]",
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2024-07-01",
+              "name": "[format('{0}-publicIP', parameters('vmName'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "publicIPAllocationMethod": "Static"
+              },
+              "sku": {
+                "name": "Standard"
+              }
+            },
+            {
+              "type": "Microsoft.Network/networkInterfaces",
+              "apiVersion": "2024-07-01",
+              "name": "[format('{0}-nic', parameters('vmName'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "ipConfigurations": [
+                  {
+                    "name": "ipconfig1",
+                    "properties": {
+                      "subnet": {
+                        "id": "[parameters('subnetId')]"
+                      },
+                      "privateIPAllocationMethod": "Dynamic",
+                      "publicIPAddress": "[if(parameters('publicIp'), createObject('id', resourceId('Microsoft.Network/publicIPAddresses', format('{0}-publicIP', parameters('vmName')))), null())]",
+                      "applicationSecurityGroups": [
+                        {
+                          "id": "[parameters('asgIds')]"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "networkSecurityGroup": {
+                  "id": "[parameters('nsgId')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-publicIP', parameters('vmName')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Compute/virtualMachines",
+              "apiVersion": "2024-07-01",
+              "name": "[parameters('vmName')]",
+              "location": "[parameters('location')]",
+              "zones": [
+                "[parameters('zones')]"
+              ],
+              "properties": {
+                "hardwareProfile": {
+                  "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                  "computerName": "[parameters('vmName')]",
+                  "adminUsername": "[parameters('admin')]",
+                  "adminPassword": "[parameters('adminPassword')]",
+                  "linuxConfiguration": {
+                    "disablePasswordAuthentication": false,
+                    "provisionVMAgent": true
+                  }
+                },
+                "storageProfile": {
+                  "imageReference": {
+                    "publisher": "Canonical",
+                    "offer": "0001-com-ubuntu-server-focal",
+                    "sku": "20_04-lts",
+                    "version": "latest"
+                  },
+                  "osDisk": {
+                    "name": "[format('{0}OsDisk', parameters('vmName'))]",
+                    "caching": "ReadWrite",
+                    "createOption": "FromImage",
+                    "managedDisk": {
+                      "storageAccountType": "Standard_LRS"
+                    }
+                  }
+                },
+                "networkProfile": {
+                  "networkInterfaces": [
+                    {
+                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-nic', parameters('vmName')))]"
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-nic', parameters('vmName')))]"
+              ]
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "asg",
+        "[format('nsgforvm[{0}]', 2)]",
+        "[format('nsgforvm[{0}]', 0)]",
+        "[format('nsgforvm[{0}]', 1)]",
+        "vnet"
+      ]
+    }
+  }
+}

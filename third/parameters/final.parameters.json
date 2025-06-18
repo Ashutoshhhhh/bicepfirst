@@ -1,0 +1,83 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vnetName": {
+      "value": "myVnet2"
+    },
+    "vnetAddressSpace": {
+      "value": "172.172.0.0/16"
+    },
+    "subnetName": {
+      "value": [
+        "app-subnet",
+        "web-subnet",
+        "db-subnet"
+      ]
+    },
+    "subnetAddressPrefix": {
+      "value": [
+        "172.172.1.0/24",
+        "172.172.2.0/24",
+        "172.172.3.0/24"
+      ]
+    },
+    "location": {
+      "value": "centralindia"
+    },
+    "asgName": {
+      "value": [
+        "app-asg",
+        "web-asg",
+        "db-asg"
+      ]
+    },
+    "nsgName": {
+      "value": [
+        "app-nsg",
+        "web-nsg",
+        "db-nsg"
+      ]
+    },
+    "tier": {
+      "value": [
+        "app",
+        "web",
+        "db"
+      ]
+    },
+    "nsgForVmName": {
+      "value": [
+        "app-nsg-vm",
+        "web-nsg-vm",
+        "db-nsg-vm"
+      ]
+    },
+    "vmName": {
+      "value": [
+        "app-vm",
+        "web-vm",
+        "db-vm"
+      ]
+    },
+    "vmSize": {
+      "value": "Standard_B1s"
+    },
+    "admin": {
+      "value": "azureuser"
+    },
+    "zones": {
+      "value": "2"
+    },
+    "publicIp": {
+      "value": [
+        true,
+        false,
+        false
+      ]
+    }
+    
+    
+    
+  }
+}
